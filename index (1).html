@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YatraPlan — Indian Travel Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --saffron: #E8631A;
+    --deep: #1A0F0A;
+    --gold: #C9A84C;
+    --cream: #F5EFE6;
+    --rust: #8B3A1E;
+    --sand: #D4B896;
+    --ink: #2C1810;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--deep);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(232,99,26,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(201,168,76,0.10) 0%, transparent 50%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23C9A84C' fill-opacity='0.04'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* HEADER */
+  header { text-align: center; padding: 60px 0 40px; border-bottom: 1px solid rgba(201,168,76,0.2); margin-bottom: 50px; }
+  .logo-line { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px; }
+  .logo-ornament { width: 40px; height: 2px; background: linear-gradient(90deg, transparent, var(--gold)); }
+  .logo-ornament.right { background: linear-gradient(90deg, var(--gold), transparent); }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, var(--cream) 0%, var(--gold) 60%, var(--saffron) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  header p { font-size: 0.9rem; color: var(--sand); letter-spacing: 0.18em; text-transform: uppercase; font-weight: 300; }
+
+  /* STEPS — now 5 dots */
+  .steps { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 48px; }
+  .step-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(201,168,76,0.15);
+    border: 1.5px solid rgba(201,168,76,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 500; color: var(--sand);
+    transition: all 0.4s ease; position: relative; z-index: 1;
+  }
+  .step-dot.active { background: var(--saffron); border-color: var(--saffron); color: white; box-shadow: 0 0 20px rgba(232,99,26,0.5); }
+  .step-dot.done { background: var(--gold); border-color: var(--gold); color: var(--deep); }
+  .step-line { flex: 1; height: 1px; max-width: 50px; background: rgba(201,168,76,0.25); }
+
+  /* PANELS */
+  .panel {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 2px; padding: 36px 40px;
+    margin-bottom: 24px; display: none;
+    animation: fadeSlide 0.5s ease both;
+    backdrop-filter: blur(4px);
+  }
+  .panel.active { display: block; }
+  @keyframes fadeSlide { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+
+  .panel-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--gold); margin-bottom: 6px; font-style: italic; }
+  .panel-subtitle { font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sand); margin-bottom: 30px; opacity: 0.7; }
+
+  label { display: block; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--sand); margin-bottom: 8px; font-weight: 500; }
+  select, input[type="number"] {
+    width: 100%; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,168,76,0.25); border-radius: 2px;
+    color: var(--cream); font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
+    padding: 13px 16px; margin-bottom: 22px; outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s; appearance: none; -webkit-appearance: none;
+  }
+  select:focus, input:focus { border-color: var(--saffron); box-shadow: 0 0 0 3px rgba(232,99,26,0.15); }
+  select option { background: #2a1208; color: var(--cream); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 540px) { .form-row { grid-template-columns: 1fr; } .panel { padding: 26px 22px; } }
+
+  /* SCROLLABLE LIST (restaurants / lodges) */
+  .list-container { max-height: 320px; overflow-y: auto; margin-bottom: 22px; scrollbar-width: thin; scrollbar-color: var(--rust) transparent; }
+  .list-container::-webkit-scrollbar { width: 4px; }
+  .list-container::-webkit-scrollbar-thumb { background: var(--rust); border-radius: 2px; }
+
+  .list-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border: 1px solid rgba(201,168,76,0.12);
+    margin-bottom: 6px; border-radius: 2px; cursor: pointer;
+    transition: all 0.25s ease; background: rgba(255,255,255,0.02);
+  }
+  .list-item:hover { background: rgba(232,99,26,0.08); border-color: rgba(232,99,26,0.35); }
+  .list-item.selected { background: rgba(232,99,26,0.15); border-color: var(--saffron); }
+  .list-item-name { font-size: 0.9rem; color: var(--cream); flex: 1; }
+  .list-item-price { font-size: 0.85rem; color: var(--gold); font-weight: 500; white-space: nowrap; margin-left: 12px; }
+  .list-num { font-size: 0.7rem; color: var(--sand); opacity: 0.5; margin-right: 10px; width: 20px; flex-shrink: 0; }
+
+  /* TRANSPORT MODE CARDS */
+  .transport-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+  @media (max-width: 420px) { .transport-grid { grid-template-columns: 1fr; } }
+  .transport-card {
+    border: 1px solid rgba(201,168,76,0.2); border-radius: 2px;
+    padding: 20px 16px; text-align: center; cursor: pointer;
+    transition: all 0.3s ease; background: rgba(255,255,255,0.02);
+  }
+  .transport-card:hover { background: rgba(232,99,26,0.07); border-color: rgba(232,99,26,0.3); }
+  .transport-card.selected { background: rgba(232,99,26,0.15); border-color: var(--saffron); box-shadow: 0 0 20px rgba(232,99,26,0.15); }
+  .transport-icon { font-size: 2rem; margin-bottom: 10px; }
+  .transport-name { font-size: 0.85rem; font-weight: 500; color: var(--cream); }
+  .transport-rate { font-size: 0.72rem; color: var(--sand); opacity: 0.7; margin-top: 4px; }
+
+  /* AGENCY LIST */
+  .agency-filters {
+    display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .filter-btn {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(201,168,76,0.25);
+    color: var(--sand); font-family: 'DM Sans', sans-serif; font-size: 0.72rem;
+    letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 16px;
+    border-radius: 20px; cursor: pointer; transition: all 0.25s ease;
+  }
+  .filter-btn:hover { border-color: var(--saffron); color: var(--cream); }
+  .filter-btn.active { background: var(--saffron); border-color: var(--saffron); color: white; }
+
+  .agency-list-container { max-height: 400px; overflow-y: auto; margin-bottom: 22px; scrollbar-width: thin; scrollbar-color: var(--rust) transparent; }
+  .agency-list-container::-webkit-scrollbar { width: 4px; }
+  .agency-list-container::-webkit-scrollbar-thumb { background: var(--rust); border-radius: 2px; }
+
+  .agency-item {
+    display: grid; grid-template-columns: 24px 1fr auto;
+    align-items: center; gap: 12px;
+    padding: 14px 16px; border: 1px solid rgba(201,168,76,0.12);
+    margin-bottom: 8px; border-radius: 2px; cursor: pointer;
+    transition: all 0.25s ease; background: rgba(255,255,255,0.02);
+  }
+  .agency-item:hover { background: rgba(232,99,26,0.07); border-color: rgba(232,99,26,0.35); }
+  .agency-item.selected { background: rgba(232,99,26,0.15); border-color: var(--saffron); }
+  .agency-num { font-size: 0.68rem; color: var(--sand); opacity: 0.5; }
+  .agency-info { display: flex; flex-direction: column; gap: 4px; }
+  .agency-name { font-size: 0.92rem; color: var(--cream); font-weight: 500; }
+  .agency-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .agency-rating { display: flex; align-items: center; gap: 4px; }
+  .stars { color: var(--gold); font-size: 0.8rem; letter-spacing: 1px; }
+  .rating-val { font-size: 0.75rem; color: var(--sand); }
+  .agency-tag {
+    font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 10px; font-weight: 500;
+  }
+  .tag-bus { background: rgba(46,125,50,0.2); color: #81c784; border: 1px solid rgba(46,125,50,0.3); }
+  .tag-flight { background: rgba(21,101,192,0.2); color: #90caf9; border: 1px solid rgba(21,101,192,0.3); }
+  .tag-both { background: rgba(232,99,26,0.2); color: #ffb74d; border: 1px solid rgba(232,99,26,0.3); }
+  .agency-prices { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 120px; }
+  .price-row { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; }
+  .price-icon { font-size: 0.72rem; opacity: 0.6; }
+  .price-val { color: var(--gold); font-weight: 500; }
+  .price-label { color: var(--sand); font-size: 0.68rem; opacity: 0.7; }
+
+  /* BUTTON */
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--saffron); color: white; border: none;
+    padding: 14px 32px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; cursor: pointer; border-radius: 2px;
+    transition: all 0.3s ease; width: 100%; justify-content: center;
+  }
+  .btn:hover { background: #cf5615; box-shadow: 0 8px 30px rgba(232,99,26,0.4); transform: translateY(-1px); }
+  .error-msg { color: #ff6b6b; font-size: 0.78rem; margin-top: -16px; margin-bottom: 16px; letter-spacing: 0.05em; }
+
+  /* SUMMARY */
+  #summary-panel {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 2px; padding: 42px 44px;
+    display: none; animation: fadeSlide 0.6s ease both;
+  }
+  #summary-panel.active { display: block; }
+  .summary-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 36px; gap: 20px; flex-wrap: wrap; }
+  .summary-route { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--cream); line-height: 1.1; }
+  .summary-route span { color: var(--saffron); }
+  .summary-badge { background: rgba(232,99,26,0.15); border: 1px solid var(--saffron); color: var(--saffron); font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 6px 14px; border-radius: 20px; white-space: nowrap; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 30px; }
+  @media (max-width: 500px) { .summary-grid { grid-template-columns: 1fr; } #summary-panel { padding: 28px 22px; } }
+  .summary-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(201,168,76,0.15); border-radius: 2px; padding: 18px 20px; }
+  .summary-card-label { font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sand); opacity: 0.6; margin-bottom: 6px; }
+  .summary-card-value { font-size: 0.95rem; color: var(--cream); font-weight: 500; }
+  .summary-card-sub { font-size: 0.75rem; color: var(--sand); margin-top: 3px; opacity: 0.7; }
+  .cost-breakdown { border-top: 1px solid rgba(201,168,76,0.2); padding-top: 26px; margin-top: 6px; }
+  .cost-line { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.88rem; }
+  .cost-line-label { color: var(--sand); }
+  .cost-line-value { color: var(--cream); font-weight: 500; }
+  .total-line { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 0; margin-top: 6px; }
+  .total-label { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--gold); font-style: italic; }
+  .total-value { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--saffron); }
+  .btn-reset { margin-top: 30px; background: transparent; border: 1px solid rgba(201,168,76,0.3); color: var(--sand); letter-spacing: 0.14em; }
+  .btn-reset:hover { background: rgba(201,168,76,0.08); border-color: var(--gold); color: var(--gold); box-shadow: none; transform: none; }
+  .btn-skip { background: transparent; border: 1px solid rgba(201,168,76,0.3); color: var(--sand); letter-spacing: 0.14em; width: auto; flex: 1; }
+  .btn-skip:hover { background: rgba(201,168,76,0.08); border-color: var(--gold); color: var(--gold); box-shadow: none; transform: none; }
+
+  /* HISTORICAL PLACES */
+  .places-note {
+    background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 2px; padding: 12px 16px; margin-bottom: 22px;
+    font-size: 0.82rem; color: var(--sand); display: flex; gap: 10px; align-items: flex-start;
+  }
+  .places-note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+  .places-note strong { color: var(--gold); }
+  .places-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin-bottom: 20px;
+  }
+  @media (max-width: 540px) { .places-grid { grid-template-columns: 1fr; } }
+  .place-card {
+    border: 1px solid rgba(201,168,76,0.15); border-radius: 4px;
+    cursor: pointer; overflow: hidden;
+    transition: all 0.28s ease; background: rgba(255,255,255,0.02);
+    position: relative; box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .place-card:hover { border-color: rgba(232,99,26,0.5); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.45); }
+  .place-card.selected { border-color: var(--saffron); box-shadow: 0 0 0 2px rgba(232,99,26,0.35), 0 6px 24px rgba(0,0,0,0.4); }
+  .place-img-wrap {
+    position: relative; width: 100%; height: 140px; overflow: hidden;
+    background: rgba(255,255,255,0.04);
+  }
+  .place-img-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.4s ease; display: block;
+  }
+  .place-card:hover .place-img-wrap img { transform: scale(1.06); }
+  .place-img-wrap::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, rgba(26,15,10,0.85) 100%);
+    pointer-events: none;
+  }
+  .place-img-placeholder {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px;
+    font-size: 2rem;
+  }
+  .place-img-placeholder span { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sand); opacity: 0.5; }
+  .place-type-badge {
+    position: absolute; top: 8px; left: 8px; z-index: 2;
+    background: rgba(26,15,10,0.78); backdrop-filter: blur(4px);
+    border: 1px solid rgba(201,168,76,0.25); border-radius: 10px;
+    padding: 3px 10px; font-size: 0.62rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--sand);
+  }
+  .place-card-check {
+    position: absolute; top: 8px; right: 8px; z-index: 2;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(201,168,76,0.4); background: rgba(26,15,10,0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; color: transparent; transition: all 0.2s;
+    backdrop-filter: blur(4px);
+  }
+  .place-card.selected .place-card-check { background: var(--saffron); border-color: var(--saffron); color: white; }
+  .place-card-body { padding: 11px 13px 12px; }
+  .place-card-name { font-size: 0.88rem; font-weight: 600; color: var(--cream); margin-bottom: 7px; line-height: 1.3; }
+  .place-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+  .place-card-fee { font-size: 0.82rem; color: var(--gold); font-weight: 600; }
+  .place-free { color: #81c784; font-size: 0.8rem; font-weight: 600; }
+  .place-card-timing { font-size: 0.68rem; color: var(--sand); opacity: 0.6; }
+  .places-selected-info {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(232,99,26,0.1); border: 1px solid rgba(232,99,26,0.3);
+    border-radius: 2px; padding: 10px 16px; margin-bottom: 18px;
+    font-size: 0.85rem;
+  }
+  #places-count { color: var(--cream); font-weight: 500; }
+  #places-fee-total { color: var(--saffron); font-weight: 700; font-size: 1rem; }
+  .place-badge {
+    background: rgba(232,99,26,0.15); border: 1px solid rgba(232,99,26,0.3);
+    color: var(--cream); font-size: 0.75rem; padding: 4px 10px; border-radius: 12px;
+  }
+  .footer-note { text-align: center; font-size: 0.72rem; color: var(--sand); opacity: 0.35; margin-top: 50px; letter-spacing: 0.1em; }
+
+  /* ═══════════════ SIGN-IN PAGE ═══════════════ */
+  #signin-page {
+    position: fixed; inset: 0; z-index: 999;
+    background: var(--deep);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  #signin-page.hide { opacity:0; transform:translateY(-30px); pointer-events:none; }
+  .signin-bg { position:absolute; inset:0; overflow:hidden; z-index:0; }
+  .signin-bg::before {
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(ellipse at 15% 15%, rgba(232,99,26,0.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 85%, rgba(201,168,76,0.14) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 50%, rgba(139,58,30,0.10) 0%, transparent 70%);
+  }
+  .diamond {
+    position:absolute; transform:rotate(45deg);
+    background:var(--gold); opacity:0.07;
+    animation:floatDiamond 8s ease-in-out infinite;
+  }
+  .diamond:nth-child(1){width:80px;height:80px;top:8%;left:5%;animation-delay:0s}
+  .diamond:nth-child(2){width:40px;height:40px;top:20%;right:8%;animation-delay:1.5s;opacity:0.05;background:var(--saffron)}
+  .diamond:nth-child(3){width:60px;height:60px;bottom:15%;left:10%;animation-delay:3s}
+  .diamond:nth-child(4){width:30px;height:30px;bottom:25%;right:12%;animation-delay:2s;opacity:0.08;background:var(--saffron)}
+  .diamond:nth-child(5){width:20px;height:20px;top:50%;left:2%;animation-delay:4s}
+  .diamond:nth-child(6){width:50px;height:50px;top:5%;right:25%;animation-delay:0.8s;opacity:0.04}
+  @keyframes floatDiamond{0%,100%{transform:rotate(45deg) translateY(0px)}50%{transform:rotate(45deg) translateY(-18px)}}
+  .signin-card {
+    position:relative; z-index:1;
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(201,168,76,0.22); border-radius:4px;
+    padding:52px 52px 44px; width:100%; max-width:460px;
+    backdrop-filter:blur(12px);
+    box-shadow:0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.08);
+    animation:cardIn 0.8s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @keyframes cardIn{from{opacity:0;transform:translateY(40px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @media(max-width:500px){.signin-card{padding:36px 28px 32px}}
+  .signin-welcome {
+    text-align:center; font-size:0.78rem; letter-spacing:0.22em;
+    text-transform:uppercase; color:var(--sand); opacity:0.75;
+    margin-bottom:6px; font-weight:300;
+  }
+  .signin-brand {
+    text-align:center; margin-bottom:6px;
+    font-family:'Playfair Display',serif;
+    font-size:clamp(2.6rem,7vw,3.8rem);
+    font-weight:700; letter-spacing:0.04em; line-height:1;
+  }
+  .brand-yatra {
+    background:linear-gradient(135deg,var(--cream) 0%,var(--gold) 50%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .brand-plan {
+    background:linear-gradient(135deg,var(--saffron) 0%,#ff9a4a 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    position:relative; display:inline-block;
+  }
+  .brand-plan::after {
+    content:''; position:absolute; bottom:-5px; left:0; right:0; height:3px;
+    background:linear-gradient(90deg,transparent,var(--saffron),transparent);
+    border-radius:2px;
+  }
+  .signin-tagline {
+    text-align:center; font-size:0.82rem; color:var(--sand); opacity:0.6;
+    letter-spacing:0.12em; text-transform:uppercase; font-weight:300; margin-bottom:36px;
+  }
+  .signin-divider {
+    display:flex; align-items:center; gap:12px; margin-bottom:28px;
+  }
+  .signin-divider::before,.signin-divider::after {
+    content:''; flex:1; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(201,168,76,0.3),transparent);
+  }
+  .signin-divider span{font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--sand);opacity:0.5}
+  .signin-field { margin-bottom:18px; }
+  .signin-field label {
+    display:block; font-size:0.68rem; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--sand); margin-bottom:7px; font-weight:500;
+  }
+  .signin-input {
+    width:100%; background:rgba(255,255,255,0.04);
+    border:1px solid rgba(201,168,76,0.22); border-radius:2px;
+    color:var(--cream); font-family:'DM Sans',sans-serif;
+    font-size:0.95rem; padding:13px 16px; outline:none;
+    transition:border-color 0.3s,box-shadow 0.3s,background 0.3s;
+  }
+  .signin-input:focus{border-color:var(--saffron);box-shadow:0 0 0 3px rgba(232,99,26,0.15);background:rgba(255,255,255,0.06)}
+  .signin-input::placeholder{color:rgba(212,184,150,0.35)}
+  .signin-btn {
+    width:100%; padding:15px;
+    background:linear-gradient(135deg,var(--saffron) 0%,#cf5615 100%);
+    border:none; border-radius:2px; color:white;
+    font-family:'DM Sans',sans-serif; font-size:0.85rem;
+    font-weight:500; letter-spacing:0.18em; text-transform:uppercase;
+    cursor:pointer; margin-top:10px;
+    transition:all 0.3s ease; box-shadow:0 4px 20px rgba(232,99,26,0.3);
+  }
+  .signin-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,99,26,0.5)}
+  .signin-btn:active{transform:translateY(0)}
+  .signin-error{color:#ff6b6b;font-size:0.75rem;margin-top:-8px;margin-bottom:12px;letter-spacing:0.05em;min-height:18px}
+  .signin-credits {
+    margin-top:32px; padding-top:22px;
+    border-top:1px solid rgba(201,168,76,0.12); text-align:center;
+  }
+  .signin-credits-label {
+    font-size:0.62rem; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--sand); opacity:0.45; margin-bottom:10px;
+  }
+  .credits-names{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+  .credit-name {
+    background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.22);
+    border-radius:20px; padding:5px 16px;
+    font-size:0.78rem; color:var(--gold); font-weight:500; letter-spacing:0.04em;
+  }
+  .signin-hint{text-align:center;margin-top:16px;font-size:0.68rem;color:var(--sand);opacity:0.35;letter-spacing:0.05em}
+  /* ════════════════════════════════════════════ */
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIGN-IN PAGE ═══════════════ -->
+<div id="signin-page">
+  <div class="signin-bg">
+    <div class="diamond"></div>
+    <div class="diamond"></div>
+    <div class="diamond"></div>
+    <div class="diamond"></div>
+    <div class="diamond"></div>
+    <div class="diamond"></div>
+  </div>
+
+  <div class="signin-card">
+
+    <!-- Welcome + brand -->
+    <div class="signin-welcome">Welcome to</div>
+    <div class="signin-brand">
+      <span class="brand-yatra">Yatra</span><span class="brand-plan">Plan</span>
+    </div>
+    <div class="signin-tagline">Indian Travel Cost Estimator</div>
+
+    <div class="signin-divider"><span>Sign In to Continue</span></div>
+
+    <!-- Form -->
+    <div class="signin-field">
+      <label>Username</label>
+      <input class="signin-input" id="si-user" type="text" placeholder="Enter your username" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('si-pass').focus()"/>
+    </div>
+    <div class="signin-field">
+      <label>Password</label>
+      <input class="signin-input" id="si-pass" type="password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doSignIn()"/>
+    </div>
+    <div class="signin-error" id="si-err"></div>
+    <button class="signin-btn" onclick="doSignIn()">Sign In &amp; Explore →</button>
+
+    <p class="signin-hint">Use any username &amp; password of 4+ characters to continue</p>
+
+    <!-- Credits -->
+    <div class="signin-credits">
+      <div class="signin-credits-label">Created by</div>
+      <div class="credits-names">
+        <span class="credit-name">Saiganesh</span>
+        <span class="credit-name">Anji</span>
+        <span class="credit-name">Veerendra</span>
+        <span class="credit-name">Aneeshma</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- ══════════════════════════════════════════ -->
+<div class="wrap">
+
+  <header>
+    <div class="logo-line">
+      <div class="logo-ornament"></div>
+      <h1>YatraPlan</h1>
+      <div class="logo-ornament right"></div>
+    </div>
+    <p>Indian Travel Cost Estimator</p>
+  </header>
+
+  <!-- 6-STEP INDICATOR -->
+  <div class="steps">
+    <div class="step-dot active" id="s1">1</div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="s2">2</div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="s3">3</div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="s4">4</div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="s5">5</div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="s6">6</div>
+  </div>
+
+  <!-- STEP 1: Journey Details -->
+  <div class="panel active" id="panel1">
+    <div class="panel-title">Plan Your Journey</div>
+    <div class="panel-subtitle">Step 1 — Route &amp; Duration</div>
+    <div class="form-row">
+      <div>
+        <label>Source City</label>
+        <select id="source"><option value="">— Select City —</option></select>
+      </div>
+      <div>
+        <label>Destination City</label>
+        <select id="destination"><option value="">— Select City —</option></select>
+      </div>
+    </div>
+    <label>Number of Stay Days</label>
+    <input type="number" id="days" min="1" max="30" placeholder="e.g. 3"/>
+    <div class="error-msg" id="err1"></div>
+    <button class="btn" onclick="goStep2()">Continue to Dining →</button>
+  </div>
+
+  <!-- STEP 2: Restaurant -->
+  <div class="panel" id="panel2">
+    <div class="panel-title">Choose a Restaurant</div>
+    <div class="panel-subtitle" id="rest-subtitle">Step 2 — Dining in Destination</div>
+    <div class="list-container" id="rest-list"></div>
+    <div class="error-msg" id="err2"></div>
+    <button class="btn" onclick="goStep3()">Continue to Accommodation →</button>
+  </div>
+
+  <!-- STEP 3: Lodge -->
+  <div class="panel" id="panel3">
+    <div class="panel-title">Choose Your Stay</div>
+    <div class="panel-subtitle" id="lodge-subtitle">Step 3 — Accommodation in Destination</div>
+    <div class="list-container" id="lodge-list"></div>
+    <div class="error-msg" id="err3"></div>
+    <button class="btn" onclick="goStep4()">Continue to Transport →</button>
+  </div>
+
+  <!-- STEP 4: Transport Mode -->
+  <div class="panel" id="panel4">
+    <div class="panel-title">Select Transport Mode</div>
+    <div class="panel-subtitle">Step 4 — How will you travel?</div>
+    <div class="transport-grid">
+      <div class="transport-card" id="tc-bus" onclick="selectTransport('bus')">
+        <div class="transport-icon">🚌</div>
+        <div class="transport-name">Bus</div>
+        <div class="transport-rate">₹1.5 / km</div>
+      </div>
+      <div class="transport-card" id="tc-train" onclick="selectTransport('train')">
+        <div class="transport-icon">🚂</div>
+        <div class="transport-name">Train</div>
+        <div class="transport-rate">₹1 / km + ₹50</div>
+      </div>
+      <div class="transport-card" id="tc-flight" onclick="selectTransport('flight')">
+        <div class="transport-icon">✈️</div>
+        <div class="transport-name">Flight</div>
+        <div class="transport-rate">₹2500 + ₹2/km + ₹800</div>
+      </div>
+    </div>
+    <div class="error-msg" id="err4"></div>
+    <button class="btn" onclick="goStep5()">Continue to Travel Agency →</button>
+  </div>
+
+  <!-- STEP 5: Travel Agency -->
+  <div class="panel" id="panel5">
+    <div class="panel-title">Choose a Travel Agency</div>
+    <div class="panel-subtitle" id="agency-subtitle">Step 5 — Book through an Agency</div>
+
+    <div class="agency-filters">
+      <button class="filter-btn active" onclick="filterAgencies('all', this)">All Agencies</button>
+      <button class="filter-btn" onclick="filterAgencies('bus', this)">🚌 Bus Only</button>
+      <button class="filter-btn" onclick="filterAgencies('flight', this)">✈️ Flight Only</button>
+      <button class="filter-btn" onclick="filterAgencies('both', this)">🚌✈️ Both</button>
+      <button class="filter-btn" onclick="sortAgencies('rating', this)">⭐ Top Rated</button>
+      <button class="filter-btn" onclick="sortAgencies('price', this)">💰 Lowest Price</button>
+    </div>
+
+    <div class="agency-list-container" id="agency-list"></div>
+    <div class="error-msg" id="err5"></div>
+    <button class="btn" onclick="goStep6()">Continue to Historical Places →</button>
+  </div>
+
+  <!-- STEP 6: Historical Places (Optional) -->
+  <div class="panel" id="panel6">
+    <div class="panel-title">Historical Places to Visit</div>
+    <div class="panel-subtitle" id="places-subtitle">Step 6 — Optional Sightseeing (select any or skip)</div>
+
+    <div class="places-note">
+      <span class="places-note-icon">ℹ️</span>
+      This step is <strong>optional</strong>. Select the places you wish to visit — their entry fees will be added to your total. You can also skip directly to the summary.
+    </div>
+
+    <div class="places-grid" id="places-grid"></div>
+
+    <div class="places-selected-info" id="places-selected-info" style="display:none">
+      <span id="places-count">0 places selected</span>
+      <span id="places-fee-total">+₹0</span>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <button class="btn btn-skip" onclick="calculateTrip()">Skip &amp; View Summary</button>
+      <button class="btn" onclick="calculateTrip()">Confirm &amp; View Summary →</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div id="summary-panel">
+    <div class="summary-header">
+      <div class="summary-route" id="sum-route">City → City</div>
+      <div class="summary-badge" id="sum-transport-badge">Bus</div>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-card-label">Distance</div>
+        <div class="summary-card-value" id="sum-distance">— km</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Stay Duration</div>
+        <div class="summary-card-value" id="sum-days">— days</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Restaurant</div>
+        <div class="summary-card-value" id="sum-rest">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Lodge</div>
+        <div class="summary-card-value" id="sum-lodge">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Travel Agency</div>
+        <div class="summary-card-value" id="sum-agency">—</div>
+        <div class="summary-card-sub" id="sum-agency-rating"></div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Agency Transport Cost</div>
+        <div class="summary-card-value" id="sum-agency-cost">—</div>
+        <div class="summary-card-sub" id="sum-agency-mode"></div>
+      </div>
+    </div>
+    <!-- Places visited list in summary -->
+    <div id="sum-places-section" style="display:none;margin-bottom:24px;">
+      <div style="font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--sand);opacity:0.6;margin-bottom:10px;">Sightseeing Planned</div>
+      <div id="sum-places-list" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="cost-breakdown">
+      <div class="cost-line">
+        <span class="cost-line-label">Agency Transport Cost</span>
+        <span class="cost-line-value" id="sum-transport-cost">₹0</span>
+      </div>
+      <div class="cost-line">
+        <span class="cost-line-label">Food Cost (<span id="sum-days2">0</span> days)</span>
+        <span class="cost-line-value" id="sum-food-cost">₹0</span>
+      </div>
+      <div class="cost-line">
+        <span class="cost-line-label">Hotel Cost (<span id="sum-days3">0</span> days)</span>
+        <span class="cost-line-value" id="sum-hotel-cost">₹0</span>
+      </div>
+      <div class="cost-line" id="sum-places-line" style="display:none">
+        <span class="cost-line-label">Sightseeing Entry Fees (<span id="sum-places-count">0</span> places)</span>
+        <span class="cost-line-value" id="sum-places-cost">₹0</span>
+      </div>
+      <div class="total-line">
+        <div class="total-label">Total Trip Cost</div>
+        <div class="total-value" id="sum-total">₹0</div>
+      </div>
+    </div>
+    <button class="btn btn-reset" onclick="resetAll()">← Plan Another Trip</button>
+  </div>
+
+  <p class="footer-note">Costs are indicative estimates. Distances are deterministically simulated.</p>
+</div>
+
+<script>
+const cities = ["Hyderabad","Mumbai","Delhi","Chennai","Bengaluru","Kolkata","Pune","Ahmedabad","Jaipur","Lucknow"];
+
+// ── Restaurant data (20×16 = 320 combos, guaranteed 30 unique per city) ──────
+const rPre = ["Royal","Spice","Green","Urban","Golden","Tasty","Grand","Heritage","Blue","Flavour",
+              "Zesty","Saffron","Pepper","Lotus","Silver","Crimson","Masala","Desi","Fresh","Aromatic"];
+const rSuf = ["Kitchen","Dine","Restaurant","Cafe","Palace","Hub","Bistro","Garden",
+              "Corner","Lounge","Point","House","Junction","Eatery","Dhaba","Grill"];
+
+// ── Lodge data (16×14 = 224 combos) ──────────────────────────────────────────
+const lPre = ["Sunrise","Comfort","Royal","Grand","City","Lakeview","Metro","Elite",
+              "Pearl","Golden","Horizon","Bliss","Serene","Urban","Classic","Prestige"];
+const lSuf = ["Lodge","Inn","Stay","Residency","Suites","Hotel","Retreat",
+              "Nest","Villa","Palace","Haven","Rooms","Mansion","Quarters"];
+
+// ── Agency data (20×16 = 320 combos, guaranteed 30 unique per route) ─────────
+const aPre = ["Swift","Eagle","Bharat","Express","Prime","Vista","Yatra","Safar","Journey","TripMate",
+              "SkyWay","RoadStar","TourIndia","Horizon","Nomad","VoyageX","Comfort","Heritage","TrueTrail","Wanderer"];
+const aSuf = ["Travels","Tours","Holidays","Journeys","Vacations","Explorations","Getaways","Adventures",
+              "Trips","Services","Routes","Wings","Wheels","Escapes","Ventures","Treks"];
+// 20×16 = 320 agency combos
+
+// ── PRNG ─────────────────────────────────────────────────────────────────────
+function seededRng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+// ── Fisher-Yates shuffle (in-place) ──────────────────────────────────────────
+function shuffle(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── Generate restaurants & lodges for a destination city ─────────────────────
+function generateCityData(city) {
+  const cityIdx = cities.indexOf(city);
+  const rng = seededRng((cityIdx + 1) * 48271 + 31337);
+
+  const allR = [];
+  for (const p of rPre) for (const sf of rSuf) allR.push(p + ' ' + sf);
+  shuffle(allR, rng);
+  const restaurants = allR.slice(0, 30).map(name => ({
+    name, cost: 250 + Math.floor(rng() * 950)
+  }));
+
+  const allL = [];
+  for (const p of lPre) for (const sf of lSuf) allL.push(p + ' ' + sf);
+  shuffle(allL, rng);
+  const lodges = allL.slice(0, 30).map(name => ({
+    name, cost: 1000 + Math.floor(rng() * 4000)
+  }));
+
+  return { restaurants, lodges };
+}
+
+// ── Generate 30 travel agencies for a src→dst route ──────────────────────────
+// Each agency has: name, rating (3.0–5.0), busCost, flightCost, type (bus/flight/both)
+function generateAgencies(src, dst, distance) {
+  const i1 = cities.indexOf(src), i2 = cities.indexOf(dst);
+  const rng = seededRng((i1 + 1) * 99991 + (i2 + 1) * 13337 + 77777);
+
+  const allA = [];
+  for (const p of aPre) for (const sf of aSuf) allA.push(p + ' ' + sf);
+  shuffle(allA, rng);
+
+  // Base transport costs (same formula as standalone)
+  const baseBus    = Math.round(distance * 1.5);
+  const baseFlight = Math.round(2500 + distance * 2 + 800);
+
+  return allA.slice(0, 30).map(name => {
+    // Rating: 3.0 to 5.0 in 0.1 steps
+    const rating = (Math.round((3.0 + rng() * 2.0) * 10) / 10).toFixed(1);
+    // Agency adds its own markup/discount: ±5%–25% of base cost
+    const busMarkup    = 0.75 + rng() * 0.50;  // 0.75x to 1.25x
+    const flightMarkup = 0.75 + rng() * 0.50;
+    const busCost    = Math.round(baseBus    * busMarkup);
+    const flightCost = Math.round(baseFlight * flightMarkup);
+    // Type: bus-only, flight-only, or both
+    const r = rng();
+    const type = r < 0.35 ? 'bus' : r < 0.65 ? 'flight' : 'both';
+    return { name, rating: parseFloat(rating), busCost, flightCost, type };
+  });
+}
+
+// ── Distance ─────────────────────────────────────────────────────────────────
+function getDistance(src, dst) {
+  const i1 = cities.indexOf(src), i2 = cities.indexOf(dst);
+  const rng = seededRng((i1 + 1) * 100 + (i2 + 1) * 7919);
+  return 100 + Math.floor(rng() * 1900);
+}
+
+// ── Star string helper ────────────────────────────────────────────────────────
+function starStr(rating) {
+  const full  = Math.floor(rating);
+  const half  = rating - full >= 0.5 ? 1 : 0;
+  const empty = 5 - full - half;
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = {
+  source: '', destination: '', days: 0,
+  restaurantIdx: -1, lodgeIdx: -1, transport: '',
+  agencyIdx: -1, distance: 0, cityData: null, agencies: [],
+  agencyFilter: 'all', agencySort: 'none', selectedPlaces: []
+};
+
+// ── Populate city dropdowns ───────────────────────────────────────────────────
+const srcEl = document.getElementById('source');
+const dstEl = document.getElementById('destination');
+cities.forEach(c => {
+  srcEl.innerHTML += `<option value="${c}">${c}</option>`;
+  dstEl.innerHTML += `<option value="${c}">${c}</option>`;
+});
+
+// ── Step indicator ────────────────────────────────────────────────────────────
+function setStep(n) {
+  for (let i = 1; i <= 6; i++) {
+    const d = document.getElementById('s' + i);
+    if (i < n) { d.classList.remove('active'); d.classList.add('done'); d.textContent = '✓'; }
+    else if (i === n) { d.classList.add('active'); d.classList.remove('done'); d.textContent = i; }
+    else { d.classList.remove('active', 'done'); d.textContent = i; }
+  }
+}
+
+// ── Step 1 → 2 ───────────────────────────────────────────────────────────────
+function goStep2() {
+  const source = srcEl.value, destination = dstEl.value;
+  const days = parseInt(document.getElementById('days').value);
+  const err = document.getElementById('err1');
+  if (!source)                { err.textContent = '⚠ Please select a source city.'; return; }
+  if (!destination)           { err.textContent = '⚠ Please select a destination city.'; return; }
+  if (source === destination) { err.textContent = '⚠ Source and destination must differ.'; return; }
+  if (!days || days < 1)      { err.textContent = '⚠ Enter a valid number of days (min 1).'; return; }
+  err.textContent = '';
+
+  const distance = getDistance(source, destination);
+  state = { ...state, source, destination, days, distance,
+    cityData: generateCityData(destination),
+    agencies: generateAgencies(source, destination, distance),
+    restaurantIdx: -1, lodgeIdx: -1, transport: '', agencyIdx: -1,
+    agencyFilter: 'all', agencySort: 'none' };
+
+  document.getElementById('rest-subtitle').textContent = `Step 2 — Dining in ${destination}`;
+  renderRestaurants();
+  switchPanel('panel1', 'panel2');
+  setStep(2);
+}
+
+function renderRestaurants() {
+  const list = document.getElementById('rest-list');
+  list.innerHTML = '';
+  state.cityData.restaurants.forEach((r, i) => {
+    list.innerHTML += `<div class="list-item" id="ri-${i}" onclick="selectRestaurant(${i})">
+      <span class="list-num">${i + 1}</span>
+      <span class="list-item-name">${r.name}</span>
+      <span class="list-item-price">₹${r.cost}/person/day</span>
+    </div>`;
+  });
+}
+
+function selectRestaurant(i) {
+  state.restaurantIdx = i;
+  document.querySelectorAll('#rest-list .list-item').forEach((el, idx) => el.classList.toggle('selected', idx === i));
+}
+
+// ── Step 2 → 3 ───────────────────────────────────────────────────────────────
+function goStep3() {
+  if (state.restaurantIdx === -1) { document.getElementById('err2').textContent = '⚠ Please select a restaurant.'; return; }
+  document.getElementById('err2').textContent = '';
+  document.getElementById('lodge-subtitle').textContent = `Step 3 — Accommodation in ${state.destination}`;
+  renderLodges();
+  switchPanel('panel2', 'panel3');
+  setStep(3);
+}
+
+function renderLodges() {
+  const list = document.getElementById('lodge-list');
+  list.innerHTML = '';
+  state.cityData.lodges.forEach((l, i) => {
+    list.innerHTML += `<div class="list-item" id="li-${i}" onclick="selectLodge(${i})">
+      <span class="list-num">${i + 1}</span>
+      <span class="list-item-name">${l.name}</span>
+      <span class="list-item-price">₹${l.cost}/day</span>
+    </div>`;
+  });
+}
+
+function selectLodge(i) {
+  state.lodgeIdx = i;
+  document.querySelectorAll('#lodge-list .list-item').forEach((el, idx) => el.classList.toggle('selected', idx === i));
+}
+
+// ── Step 3 → 4 ───────────────────────────────────────────────────────────────
+function goStep4() {
+  if (state.lodgeIdx === -1) { document.getElementById('err3').textContent = '⚠ Please select a lodge.'; return; }
+  document.getElementById('err3').textContent = '';
+  switchPanel('panel3', 'panel4');
+  setStep(4);
+}
+
+function selectTransport(t) {
+  state.transport = t;
+  ['bus', 'train', 'flight'].forEach(m => document.getElementById('tc-' + m).classList.toggle('selected', m === t));
+}
+
+// ── Step 4 → 5 ───────────────────────────────────────────────────────────────
+function goStep5() {
+  if (!state.transport) { document.getElementById('err4').textContent = '⚠ Please select a transport mode.'; return; }
+  document.getElementById('err4').textContent = '';
+  state.agencyIdx = -1;
+  state.agencyFilter = 'all';
+  state.agencySort = 'none';
+
+  document.getElementById('agency-subtitle').textContent =
+    `Step 5 — Agency for ${state.source} → ${state.destination} (${state.distance} km)`;
+
+  // Reset filter buttons
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.filter-btn').classList.add('active');
+
+  renderAgencies();
+  switchPanel('panel4', 'panel5');
+  setStep(5);
+}
+
+// ── Render agencies with current filter/sort ──────────────────────────────────
+function renderAgencies() {
+  let list = [...state.agencies];
+
+  // Filter by transport compatibility
+  if (state.agencyFilter === 'bus')    list = list.filter(a => a.type === 'bus'    || a.type === 'both');
+  if (state.agencyFilter === 'flight') list = list.filter(a => a.type === 'flight' || a.type === 'both');
+  if (state.agencyFilter === 'both')   list = list.filter(a => a.type === 'both');
+
+  // Sort
+  if (state.agencySort === 'rating') list = [...list].sort((a, b) => b.rating - a.rating);
+  if (state.agencySort === 'price') {
+    list = [...list].sort((a, b) => {
+      const ca = state.transport === 'flight' ? a.flightCost : a.busCost;
+      const cb = state.transport === 'flight' ? b.flightCost : b.busCost;
+      return ca - cb;
+    });
+  }
+
+  const container = document.getElementById('agency-list');
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--sand);opacity:0.6">No agencies match this filter.</div>`;
+    return;
+  }
+
+  list.forEach((a, i) => {
+    const origIdx = state.agencies.indexOf(a);
+    const isSelected = origIdx === state.agencyIdx;
+    const typeLabel = a.type === 'both' ? 'Bus & Flight' : a.type === 'bus' ? 'Bus Only' : 'Flight Only';
+    const typeClass = a.type === 'both' ? 'tag-both' : a.type === 'bus' ? 'tag-bus' : 'tag-flight';
+
+    const showBus    = (a.type === 'bus'    || a.type === 'both');
+    const showFlight = (a.type === 'flight' || a.type === 'both');
+
+    container.innerHTML += `
+    <div class="agency-item ${isSelected ? 'selected' : ''}" onclick="selectAgency(${origIdx})">
+      <span class="agency-num">${i + 1}</span>
+      <div class="agency-info">
+        <span class="agency-name">${a.name}</span>
+        <div class="agency-meta">
+          <div class="agency-rating">
+            <span class="stars">${starStr(a.rating)}</span>
+            <span class="rating-val">${a.rating} / 5.0</span>
+          </div>
+          <span class="agency-tag ${typeClass}">${typeLabel}</span>
+        </div>
+      </div>
+      <div class="agency-prices">
+        ${showBus    ? `<div class="price-row"><span class="price-icon">🚌</span><span class="price-val">₹${a.busCost.toLocaleString('en-IN')}</span><span class="price-label">bus</span></div>` : ''}
+        ${showFlight ? `<div class="price-row"><span class="price-icon">✈️</span><span class="price-val">₹${a.flightCost.toLocaleString('en-IN')}</span><span class="price-label">flight</span></div>` : ''}
+      </div>
+    </div>`;
+  });
+}
+
+function selectAgency(origIdx) {
+  state.agencyIdx = origIdx;
+  renderAgencies(); // re-render to update selection highlight
+}
+
+function filterAgencies(filter, btn) {
+  state.agencyFilter = filter;
+  state.agencySort = 'none';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAgencies();
+}
+
+function sortAgencies(sort, btn) {
+  state.agencySort = sort;
+  state.agencyFilter = 'all';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAgencies();
+}
+
+// ── HISTORICAL PLACES — curated real data per city ───────────────────────────
+const historicalPlaces = {
+  "Hyderabad": [
+    { name: "Charminar",             type: "Monument",        fee: 25,  timing: "9am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Charminar_-_AfterRefurbishment.jpg/480px-Charminar_-_AfterRefurbishment.jpg" },
+    { name: "Golconda Fort",         type: "Fort",            fee: 15,  timing: "8am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Golconda_Fort_Hyderabad.jpg/480px-Golconda_Fort_Hyderabad.jpg" },
+    { name: "Qutb Shahi Tombs",      type: "Tomb Complex",    fee: 10,  timing: "9am – 4:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Ibrahim_quli_qutb_shah_tomb.jpg/480px-Ibrahim_quli_qutb_shah_tomb.jpg" },
+    { name: "Salar Jung Museum",     type: "Museum",          fee: 20,  timing: "10am – 5pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Salar_jung_museum_Hyderabad.jpg/480px-Salar_jung_museum_Hyderabad.jpg" },
+    { name: "Chowmahalla Palace",    type: "Palace",          fee: 80,  timing: "10am – 5pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Chowmahalla_Palace_01.jpg/480px-Chowmahalla_Palace_01.jpg" },
+    { name: "Mecca Masjid",          type: "Mosque",          fee: 0,   timing: "4am – 9:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Mecca_Masjid%2C_Hyderabad%2C_India.jpg/480px-Mecca_Masjid%2C_Hyderabad%2C_India.jpg" },
+    { name: "Hussain Sagar Lake",    type: "Lake / Park",     fee: 0,   timing: "Open 24hrs",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Hussain_Sagar_lake_in_Hyderabad.jpg/480px-Hussain_Sagar_lake_in_Hyderabad.jpg" },
+    { name: "Birla Mandir",          type: "Temple",          fee: 0,   timing: "7am – 12pm, 3pm–9pm",  img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Birla_Mandir_Hyderabad.jpg/480px-Birla_Mandir_Hyderabad.jpg" },
+    { name: "Paigah Tombs",          type: "Heritage Site",   fee: 0,   timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Paigah_tombs.jpg/480px-Paigah_tombs.jpg" },
+    { name: "Nizam's Museum",        type: "Museum",          fee: 100, timing: "10am – 5pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Purani_Haveli_Hyderabad.jpg/480px-Purani_Haveli_Hyderabad.jpg" },
+  ],
+  "Mumbai": [
+    { name: "Gateway of India",      type: "Monument",        fee: 0,   timing: "Open 24hrs",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Mumbai_03-2016_30_Gateway_of_India.jpg/480px-Mumbai_03-2016_30_Gateway_of_India.jpg" },
+    { name: "Elephanta Caves",       type: "UNESCO Site",     fee: 40,  timing: "9am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Elephanta_Caves_-_Cave_1_-_Shiva_Trimurti_Sadashiva_%28large_sculpture%29.jpg/480px-Elephanta_Caves_-_Cave_1_-_Shiva_Trimurti_Sadashiva_%28large_sculpture%29.jpg" },
+    { name: "Chhatrapati Shivaji Terminus", type: "Heritage Station", fee: 0, timing: "Open daily",      img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Victoria_Terminus%2C_Bombay.jpg/480px-Victoria_Terminus%2C_Bombay.jpg" },
+    { name: "Haji Ali Dargah",       type: "Shrine",          fee: 0,   timing: "5:30am – 10pm",         img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Haji_Ali_Dargah%2C_Mumbai.jpg/480px-Haji_Ali_Dargah%2C_Mumbai.jpg" },
+    { name: "Siddhivinayak Temple",  type: "Temple",          fee: 0,   timing: "5:30am – 9:50pm",       img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Siddhivinayak_Temple.jpg/480px-Siddhivinayak_Temple.jpg" },
+    { name: "Kanheri Caves",         type: "Rock-cut Caves",  fee: 40,  timing: "9:30am – 5pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Kanheri_Cave_1_facade.jpg/480px-Kanheri_Cave_1_facade.jpg" },
+    { name: "Mani Bhavan",           type: "Museum",          fee: 10,  timing: "9:30am – 6pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Mani_Bhavan_Gandhi_Sangrahalaya_Mumbai_-_exterior.jpg/480px-Mani_Bhavan_Gandhi_Sangrahalaya_Mumbai_-_exterior.jpg" },
+    { name: "Banganga Tank",         type: "Sacred Tank",     fee: 0,   timing: "Open daily",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Banganga_Tank_Mumbai.jpg/480px-Banganga_Tank_Mumbai.jpg" },
+    { name: "Bhau Daji Lad Museum",  type: "City Museum",     fee: 10,  timing: "10am – 6pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Dr._Bhau_Daji_Lad_Museum.jpg/480px-Dr._Bhau_Daji_Lad_Museum.jpg" },
+    { name: "Rajabai Clock Tower",   type: "Gothic Tower",    fee: 0,   timing: "External view",         img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Rajabai_Clock_Tower_Mumbai.jpg/480px-Rajabai_Clock_Tower_Mumbai.jpg" },
+  ],
+  "Delhi": [
+    { name: "Red Fort",              type: "UNESCO Fort",     fee: 35,  timing: "9:30am – 4:30pm",       img: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Lal_Qila_on_Independence_Day.jpg/480px-Lal_Qila_on_Independence_Day.jpg" },
+    { name: "Qutub Minar",           type: "UNESCO Monument", fee: 35,  timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Qtub_Minar.jpg/480px-Qtub_Minar.jpg" },
+    { name: "Humayun's Tomb",        type: "UNESCO Tomb",     fee: 35,  timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Humayun%27s_Tomb_-_Front_View.jpg/480px-Humayun%27s_Tomb_-_Front_View.jpg" },
+    { name: "India Gate",            type: "War Memorial",    fee: 0,   timing: "Open 24hrs",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/India_Gate_in_New_Delhi_03-2016.jpg/480px-India_Gate_in_New_Delhi_03-2016.jpg" },
+    { name: "Jama Masjid",           type: "Mosque",          fee: 0,   timing: "7am – 12pm, 1:30pm–6:30pm", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Jama_masjid_delhi_2012.jpg/480px-Jama_masjid_delhi_2012.jpg" },
+    { name: "Lotus Temple",          type: "Temple",          fee: 0,   timing: "9am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Lotus_Temple_in_New_Delhi_03-2016.jpg/480px-Lotus_Temple_in_New_Delhi_03-2016.jpg" },
+    { name: "Purana Qila",           type: "Fort",            fee: 25,  timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Purana_Qila_Delhi.jpg/480px-Purana_Qila_Delhi.jpg" },
+    { name: "Safdarjung Tomb",       type: "Mughal Tomb",     fee: 25,  timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Safdarjung_Tomb_in_New_Delhi_03-2016.jpg/480px-Safdarjung_Tomb_in_New_Delhi_03-2016.jpg" },
+    { name: "Jantar Mantar",         type: "Observatory",     fee: 25,  timing: "9am – 7pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Jantar_Mantar%2C_Delhi%2C_India.jpg/480px-Jantar_Mantar%2C_Delhi%2C_India.jpg" },
+    { name: "National Museum",       type: "Museum",          fee: 20,  timing: "10am – 6pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/National_museum_india_dilli.jpg/480px-National_museum_india_dilli.jpg" },
+  ],
+  "Chennai": [
+    { name: "Kapaleeshwarar Temple", type: "Temple",          fee: 0,   timing: "5am – 12pm, 4pm–9pm",  img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Kapaleeswarar_Temple.jpg/480px-Kapaleeswarar_Temple.jpg" },
+    { name: "Fort St. George",       type: "Colonial Fort",   fee: 10,  timing: "9am – 5pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Fort_St._George%2C_Chennai.jpg/480px-Fort_St._George%2C_Chennai.jpg" },
+    { name: "Government Museum",     type: "Museum",          fee: 20,  timing: "9:30am – 5pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Chennai_Museum.jpg/480px-Chennai_Museum.jpg" },
+    { name: "Santhome Basilica",     type: "Church",          fee: 0,   timing: "6am – 8pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/San_Thome_Cathedral%2C_Chennai.jpg/480px-San_Thome_Cathedral%2C_Chennai.jpg" },
+    { name: "Mamallapuram Shore Temple", type: "UNESCO Site", fee: 40,  timing: "6am – 6pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Shore_Temple_Mahabalipuram_2007.jpg/480px-Shore_Temple_Mahabalipuram_2007.jpg" },
+    { name: "Vivekananda House",     type: "Heritage House",  fee: 15,  timing: "10am – 7pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Vivekananda_Illam_Chennai.jpg/480px-Vivekananda_Illam_Chennai.jpg" },
+    { name: "Arignar Anna Zoo",      type: "Zoo",             fee: 30,  timing: "9am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Arignar_Anna_Zoological_Park_Entrance.jpg/480px-Arignar_Anna_Zoological_Park_Entrance.jpg" },
+    { name: "Valluvar Kottam",       type: "Monument",        fee: 10,  timing: "9am – 5pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Valluvar_Kottam.jpg/480px-Valluvar_Kottam.jpg" },
+    { name: "Thousand Lights Mosque",type: "Mosque",          fee: 0,   timing: "5am – 9pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Thousand_lights_Mosque.jpg/480px-Thousand_lights_Mosque.jpg" },
+    { name: "DakshinaChitra",        type: "Heritage Museum", fee: 75,  timing: "10am – 6pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/DakshinaChitra_Heritage_Museum.jpg/480px-DakshinaChitra_Heritage_Museum.jpg" },
+  ],
+  "Bengaluru": [
+    { name: "Bangalore Palace",      type: "Palace",          fee: 230, timing: "10am – 5:30pm",         img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Bangalore_Palace.jpg/480px-Bangalore_Palace.jpg" },
+    { name: "Tipu Sultan's Summer Palace", type: "Palace",   fee: 15,  timing: "8am – 6pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Tipu_Sultan%27s_Summer_Palace%2C_Bangalore.jpg/480px-Tipu_Sultan%27s_Summer_Palace%2C_Bangalore.jpg" },
+    { name: "Lalbagh Botanical Garden", type: "Garden",      fee: 20,  timing: "6am – 7pm",              img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Glass_House_Lalbagh.jpg/480px-Glass_House_Lalbagh.jpg" },
+    { name: "Cubbon Park",           type: "Heritage Park",   fee: 0,   timing: "6am – 8pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Cubbon_park_Bangalore.jpg/480px-Cubbon_park_Bangalore.jpg" },
+    { name: "Vidhana Soudha",        type: "Government Bldg", fee: 0,  timing: "External view",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Vidhana_Soudha_Bangalore.jpg/480px-Vidhana_Soudha_Bangalore.jpg" },
+    { name: "St. Mary's Basilica",   type: "Church",          fee: 0,   timing: "6am – 8pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/St_Mary%27s_Basilica_Bangalore.jpg/480px-St_Mary%27s_Basilica_Bangalore.jpg" },
+    { name: "ISKCON Temple",         type: "Temple",          fee: 0,   timing: "7:15am – 1pm, 4pm–8:30pm", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/ISKCON_Bangalore.jpg/480px-ISKCON_Bangalore.jpg" },
+    { name: "HAL Aerospace Museum",  type: "Museum",          fee: 50,  timing: "9am – 5pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/HAL_Aerospace_Museum_Bangalore.jpg/480px-HAL_Aerospace_Museum_Bangalore.jpg" },
+    { name: "Nandi Hills",           type: "Hill Fort",       fee: 20,  timing: "6am – 10pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Nandi_Hills_Bangalore.jpg/480px-Nandi_Hills_Bangalore.jpg" },
+    { name: "Gavi Gangadhareshwara",type: "Cave Temple",      fee: 0,   timing: "6am – 8pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Gavipuram_Cave_Temple_Bangalore.jpg/480px-Gavipuram_Cave_Temple_Bangalore.jpg" },
+  ],
+  "Kolkata": [
+    { name: "Victoria Memorial",     type: "UNESCO Monument", fee: 30,  timing: "10am – 5pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Victoria_Memorial%2C_Kolkata.jpg/480px-Victoria_Memorial%2C_Kolkata.jpg" },
+    { name: "Howrah Bridge",         type: "Iconic Bridge",   fee: 0,   timing: "Open 24hrs",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Howrah_Bridge_CC.jpg/480px-Howrah_Bridge_CC.jpg" },
+    { name: "Indian Museum",         type: "National Museum", fee: 20,  timing: "10am – 5pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Indian_Museum_Kolkata.jpg/480px-Indian_Museum_Kolkata.jpg" },
+    { name: "Dakshineswar Kali Temple", type: "Temple",       fee: 0,   timing: "6am – 12:30pm, 3pm–8:30pm", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Dakshineswar_Temple_%28Kali_Temple%29.jpg/480px-Dakshineswar_Temple_%28Kali_Temple%29.jpg" },
+    { name: "Belur Math",            type: "Monastery",       fee: 0,   timing: "6am – 12pm, 3:30pm–8pm", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Belur_Math_Kolkata.jpg/480px-Belur_Math_Kolkata.jpg" },
+    { name: "Marble Palace",         type: "Heritage Mansion",fee: 0,   timing: "10am – 4pm (Tue–Sun)", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Marble_Palace_Calcutta.jpg/480px-Marble_Palace_Calcutta.jpg" },
+    { name: "Kalighat Kali Temple",  type: "Temple",          fee: 0,   timing: "5am – 2pm, 5pm–10:30pm", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Kalighat_Kali_Temple.jpg/480px-Kalighat_Kali_Temple.jpg" },
+    { name: "Mother House",          type: "Memorial",        fee: 0,   timing: "8am – 12pm, 3pm–6pm",  img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Mother_Teresa_House_Kolkata.jpg/480px-Mother_Teresa_House_Kolkata.jpg" },
+    { name: "Eden Gardens",          type: "Historic Stadium",fee: 50,  timing: "Match days",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Eden_Gardens_-_Kolkata_2013-03-21_2251.jpg/480px-Eden_Gardens_-_Kolkata_2013-03-21_2251.jpg" },
+    { name: "Science City Kolkata",  type: "Science Park",    fee: 60,  timing: "9am – 8pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Science_City_Kolkata.jpg/480px-Science_City_Kolkata.jpg" },
+  ],
+  "Pune": [
+    { name: "Shaniwar Wada",         type: "Peshwa Fort",     fee: 25,  timing: "8am – 6:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Shaniwar_Wada_Pune.jpg/480px-Shaniwar_Wada_Pune.jpg" },
+    { name: "Aga Khan Palace",       type: "Heritage Palace", fee: 25,  timing: "9am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Aga_Khan_Palace%2C_Pune.jpg/480px-Aga_Khan_Palace%2C_Pune.jpg" },
+    { name: "Sinhagad Fort",         type: "Hill Fort",       fee: 40,  timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Sinhagad_Fort_Pune.jpg/480px-Sinhagad_Fort_Pune.jpg" },
+    { name: "Lal Mahal",             type: "Palace",          fee: 5,   timing: "9am – 1pm, 2pm–5pm",   img: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Lal_Mahal_Pune.jpg/480px-Lal_Mahal_Pune.jpg" },
+    { name: "Parvati Hill Temple",   type: "Temple",          fee: 0,   timing: "8am – 7pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Parvati_Hill_Pune.jpg/480px-Parvati_Hill_Pune.jpg" },
+    { name: "Kelkar Museum",         type: "Museum",          fee: 100, timing: "10am – 5:30pm",         img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Raja_Dinkar_Kelkar_Museum_Pune.jpg/480px-Raja_Dinkar_Kelkar_Museum_Pune.jpg" },
+    { name: "Purandar Fort",         type: "Fort",            fee: 20,  timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Purandar_Fort.jpg/480px-Purandar_Fort.jpg" },
+    { name: "Osho International",    type: "Meditation Centre",fee: 0,  timing: "9am – 1pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Osho_International_Meditation_Resort%2C_Pune.jpg/480px-Osho_International_Meditation_Resort%2C_Pune.jpg" },
+    { name: "Tribal Museum Pune",    type: "Tribal Museum",   fee: 10,  timing: "10am – 5:30pm",         img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Tribal_Research_Institute_Pune.jpg/480px-Tribal_Research_Institute_Pune.jpg" },
+    { name: "Vishrambaug Wada",      type: "Heritage Building",fee: 0,  timing: "9am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Vishrambaug_Wada_Pune.jpg/480px-Vishrambaug_Wada_Pune.jpg" },
+  ],
+  "Ahmedabad": [
+    { name: "Sabarmati Ashram",      type: "Heritage Ashram", fee: 0,   timing: "8:30am – 6:30pm",       img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Gandhi_ashram_Ahmedabad_India.jpg/480px-Gandhi_ashram_Ahmedabad_India.jpg" },
+    { name: "Adalaj Stepwell",       type: "UNESCO Stepwell", fee: 0,   timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Adalaj_stepwell_-_2_stairways_on_the_inside.jpg/480px-Adalaj_stepwell_-_2_stairways_on_the_inside.jpg" },
+    { name: "Jama Masjid Ahmedabad", type: "Mosque",          fee: 0,   timing: "6am – 8pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Jami_Mosque%2C_Ahmedabad.jpg/480px-Jami_Mosque%2C_Ahmedabad.jpg" },
+    { name: "Sidi Saiyyed Mosque",   type: "UNESCO Mosque",   fee: 0,   timing: "6am – 9pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Sidi_Saiyyed_Mosque_window%2C_Ahmedabad.jpg/480px-Sidi_Saiyyed_Mosque_window%2C_Ahmedabad.jpg" },
+    { name: "Calico Textile Museum", type: "Museum",          fee: 0,   timing: "10:30am – 1pm (Thu–Tue)", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Calico_Museum_Ahmedabad.jpg/480px-Calico_Museum_Ahmedabad.jpg" },
+    { name: "Kankaria Lake",         type: "Heritage Lake",   fee: 25,  timing: "9am – 10pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Kankaria_Lake_Ahmedabad.jpg/480px-Kankaria_Lake_Ahmedabad.jpg" },
+    { name: "Teen Darwaza",          type: "Historic Gateway",fee: 0,   timing: "Open 24hrs",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Teen_Darwaja%2C_Ahmedabad.jpg/480px-Teen_Darwaja%2C_Ahmedabad.jpg" },
+    { name: "Hutheesing Jain Temple",type: "Jain Temple",     fee: 0,   timing: "8am – 7pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Hutheesingh_Jain_temple.jpg/480px-Hutheesingh_Jain_temple.jpg" },
+    { name: "Dada Harir Stepwell",   type: "Stepwell",        fee: 0,   timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Dada_harir_vav.jpg/480px-Dada_harir_vav.jpg" },
+    { name: "City Museum Ahmedabad", type: "Municipal Museum",fee: 20,  timing: "10am – 5:30pm",         img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Ahmedabad_Municipal_Corporation_building.jpg/480px-Ahmedabad_Municipal_Corporation_building.jpg" },
+  ],
+  "Jaipur": [
+    { name: "Amber Fort",            type: "UNESCO Fort",     fee: 100, timing: "8am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Amer_Fort%2C_Jaipur%2C_India.jpg/480px-Amer_Fort%2C_Jaipur%2C_India.jpg" },
+    { name: "Hawa Mahal",            type: "Palace",          fee: 50,  timing: "9am – 4:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Hawa_Mahal%2C_Jaipur_2.jpg/480px-Hawa_Mahal%2C_Jaipur_2.jpg" },
+    { name: "City Palace Jaipur",    type: "Royal Palace",    fee: 130, timing: "9:30am – 5pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/City_Palace%2C_Jaipur.jpg/480px-City_Palace%2C_Jaipur.jpg" },
+    { name: "Jantar Mantar Jaipur",  type: "UNESCO Observatory", fee: 50, timing: "9am – 4:30pm",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Jantar_Mantar_Jaipur_2010.jpg/480px-Jantar_Mantar_Jaipur_2010.jpg" },
+    { name: "Nahargarh Fort",        type: "Fort",            fee: 50,  timing: "10am – 5:30pm",         img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Nahargarh_Fort_Jaipur.jpg/480px-Nahargarh_Fort_Jaipur.jpg" },
+    { name: "Jaigarh Fort",          type: "Fort",            fee: 35,  timing: "9am – 5pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Jaigarh_Fort_Jaipur.jpg/480px-Jaigarh_Fort_Jaipur.jpg" },
+    { name: "Jal Mahal",             type: "Water Palace",    fee: 0,   timing: "External view",         img: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Jal_Mahal%2C_Jaipur.jpg/480px-Jal_Mahal%2C_Jaipur.jpg" },
+    { name: "Galtaji Temple",        type: "Temple Complex",  fee: 0,   timing: "5am – 9pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Galtaji_Temple_Jaipur.jpg/480px-Galtaji_Temple_Jaipur.jpg" },
+    { name: "Albert Hall Museum",    type: "State Museum",    fee: 40,  timing: "9am – 5pm, 7pm–10pm",  img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Albert_hall_jaipur.jpg/480px-Albert_hall_jaipur.jpg" },
+    { name: "Birla Mandir Jaipur",   type: "Temple",          fee: 0,   timing: "6am – 12pm, 4pm–9pm",  img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Birla_Mandir_Jaipur.jpg/480px-Birla_Mandir_Jaipur.jpg" },
+  ],
+  "Lucknow": [
+    { name: "Bara Imambara",         type: "Imambara",        fee: 50,  timing: "6am – 5pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Bara_Imambara_Lucknow.jpg/480px-Bara_Imambara_Lucknow.jpg" },
+    { name: "Chota Imambara",        type: "Imambara",        fee: 25,  timing: "6am – 5pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Hussainabad_Imambara%2C_Lucknow.jpg/480px-Hussainabad_Imambara%2C_Lucknow.jpg" },
+    { name: "Rumi Darwaza",          type: "Gateway",         fee: 0,   timing: "Open 24hrs",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Rumi_Darwaja%2C_Lucknow.jpg/480px-Rumi_Darwaja%2C_Lucknow.jpg" },
+    { name: "British Residency Ruins",type: "Colonial Ruins", fee: 25,  timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/British_Residency_Lucknow.jpg/480px-British_Residency_Lucknow.jpg" },
+    { name: "Hussainabad Clock Tower",type: "Clock Tower",    fee: 0,   timing: "Open daily",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Hussainabad_Clock_Tower_Lucknow.jpg/480px-Hussainabad_Clock_Tower_Lucknow.jpg" },
+    { name: "Nawab Wajid Ali Shah Zoo", type: "Zoo",          fee: 30,  timing: "8am – 5:30pm",          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Lucknow_zoological_garden_entrance.jpg/480px-Lucknow_zoological_garden_entrance.jpg" },
+    { name: "Lucknow Museum",        type: "State Museum",    fee: 20,  timing: "10am – 5pm",            img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/State_Museum_Lucknow.jpg/480px-State_Museum_Lucknow.jpg" },
+    { name: "Saadat Ali Khan Tomb",  type: "Mughal Tomb",     fee: 0,   timing: "Sunrise–Sunset",        img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Tombs_of_Nawabs_Lucknow.jpg/480px-Tombs_of_Nawabs_Lucknow.jpg" },
+    { name: "Dilkusha Kothi",        type: "Heritage Ruin",   fee: 5,   timing: "9am – 5pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Dilkusha_Kothi_Lucknow.jpg/480px-Dilkusha_Kothi_Lucknow.jpg" },
+    { name: "Jama Masjid Lucknow",   type: "Mosque",          fee: 0,   timing: "5am – 9pm",             img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Jama_Masjid_Lucknow.jpg/480px-Jama_Masjid_Lucknow.jpg" },
+  ],
+};
+
+// ── Step 5 → 6// ── Step 5 → 6 ───────────────────────────────────────────────────────────────
+function goStep6() {
+  if (state.agencyIdx === -1) { document.getElementById('err5').textContent = '⚠ Please select a travel agency.'; return; }
+  document.getElementById('err5').textContent = '';
+  state.selectedPlaces = [];
+
+  document.getElementById('places-subtitle').textContent =
+    `Step 6 — Sightseeing in ${state.destination} (optional, select any)`;
+
+  renderPlaces();
+  switchPanel('panel5', 'panel6');
+  setStep(6);
+}
+
+function renderPlaces() {
+  const places = historicalPlaces[state.destination] || [];
+  const grid = document.getElementById('places-grid');
+  grid.innerHTML = '';
+  places.forEach((p, i) => {
+    const isSelected = state.selectedPlaces.includes(i);
+    const feeHtml = p.fee === 0
+      ? '<span class="place-free">Free Entry</span>'
+      : '₹' + p.fee + ' / person';
+    const imgHtml = p.img
+      ? `<img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.parentElement.classList.add('img-err');this.style.display='none'">`
+      : '';
+    const fallbackHtml = `<div class="place-img-placeholder"><span style="font-size:2rem">🏛</span><span>${p.type}</span></div>`;
+    grid.innerHTML += `
+    <div class="place-card ${isSelected ? 'selected' : ''}" onclick="togglePlace(${i})">
+      <div class="place-img-wrap">
+        ${imgHtml}
+        ${fallbackHtml}
+        <div class="place-type-badge">${p.type}</div>
+        <div class="place-card-check">✓</div>
+      </div>
+      <div class="place-card-body">
+        <div class="place-card-name">${p.name}</div>
+        <div class="place-card-footer">
+          <span class="place-card-fee">${feeHtml}</span>
+          <span class="place-card-timing">🕐 ${p.timing}</span>
+        </div>
+      </div>
+    </div>`;
+  });
+  updatePlacesInfo();
+}
+
+function togglePlace(i) {
+  const idx = state.selectedPlaces.indexOf(i);
+  if (idx === -1) state.selectedPlaces.push(i);
+  else state.selectedPlaces.splice(idx, 1);
+  renderPlaces();
+}
+
+function updatePlacesInfo() {
+  const places = historicalPlaces[state.destination] || [];
+  const totalFee = state.selectedPlaces.reduce((s, i) => s + places[i].fee, 0);
+  const count = state.selectedPlaces.length;
+  const infoEl = document.getElementById('places-selected-info');
+  infoEl.style.display = count > 0 ? 'flex' : 'none';
+  document.getElementById('places-count').textContent = count + (count === 1 ? ' place selected' : ' places selected');
+  document.getElementById('places-fee-total').textContent = '+₹' + totalFee.toLocaleString('en-IN');
+}
+
+function fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+function calculateTrip() {
+  if (state.agencyIdx === -1) { document.getElementById('err5').textContent = '⚠ Please select a travel agency.'; return; }
+  document.getElementById('err5').textContent = '';
+
+  const agency = state.agencies[state.agencyIdx];
+  const rest   = state.cityData.restaurants[state.restaurantIdx];
+  const lodge  = state.cityData.lodges[state.lodgeIdx];
+
+  // Agency transport cost
+  let agencyTransportCost, modeName;
+  if (state.transport === 'bus') {
+    agencyTransportCost = agency.busCost; modeName = 'Bus';
+  } else if (state.transport === 'train') {
+    agencyTransportCost = state.distance + 50; modeName = 'Train';
+  } else {
+    agencyTransportCost = agency.flightCost; modeName = 'Flight';
+  }
+
+  // Places cost (selectedPlaces may be empty if user skipped step 6)
+  const places = historicalPlaces[state.destination] || [];
+  const selectedPlaces = (state.selectedPlaces || []).map(i => places[i]).filter(Boolean);
+  const placesCost = selectedPlaces.reduce((s, p) => s + p.fee, 0);
+
+  const foodCost  = rest.cost  * state.days;
+  const hotelCost = lodge.cost * state.days;
+  const total     = agencyTransportCost + foodCost + hotelCost + placesCost;
+
+  document.getElementById('sum-route').innerHTML = `${state.source} <span>→</span> ${state.destination}`;
+  document.getElementById('sum-transport-badge').textContent = modeName;
+  document.getElementById('sum-distance').textContent = state.distance + ' km';
+  document.getElementById('sum-days').textContent = state.days + (state.days === 1 ? ' day' : ' days');
+  document.getElementById('sum-rest').textContent = rest.name;
+  document.getElementById('sum-lodge').textContent = lodge.name;
+  document.getElementById('sum-agency').textContent = agency.name;
+  document.getElementById('sum-agency-rating').textContent = `${starStr(agency.rating)}  ${agency.rating} / 5.0`;
+  document.getElementById('sum-agency-cost').textContent = fmt(agencyTransportCost);
+  document.getElementById('sum-agency-mode').textContent = modeName + ' booking via agency';
+  document.getElementById('sum-transport-cost').textContent = fmt(agencyTransportCost);
+  document.getElementById('sum-food-cost').textContent = fmt(foodCost);
+  document.getElementById('sum-hotel-cost').textContent = fmt(hotelCost);
+  document.getElementById('sum-total').textContent = fmt(total);
+  document.getElementById('sum-days2').textContent = state.days;
+  document.getElementById('sum-days3').textContent = state.days;
+
+  // Places section in summary
+  const placesLine    = document.getElementById('sum-places-line');
+  const placesSection = document.getElementById('sum-places-section');
+  if (selectedPlaces.length > 0) {
+    placesLine.style.display = 'flex';
+    document.getElementById('sum-places-count').textContent = selectedPlaces.length;
+    document.getElementById('sum-places-cost').textContent = fmt(placesCost);
+    placesSection.style.display = 'block';
+    document.getElementById('sum-places-list').innerHTML =
+      selectedPlaces.map(p =>
+        `<span class="place-badge">🏛 ${p.name}${p.fee > 0 ? ' (₹' + p.fee + ')' : ' (Free)'}</span>`
+      ).join('');
+  } else {
+    placesLine.style.display = 'none';
+    placesSection.style.display = 'none';
+  }
+
+  ['panel5','panel6'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('summary-panel').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetAll() {
+  document.getElementById('summary-panel').classList.remove('active');
+  document.getElementById('panel1').classList.add('active');
+  srcEl.value = ''; dstEl.value = ''; document.getElementById('days').value = '';
+  ['err1','err2','err3','err4','err5'].forEach(id => document.getElementById(id).textContent = '');
+  ['bus','train','flight'].forEach(m => document.getElementById('tc-' + m).classList.remove('selected'));
+  state = { source:'', destination:'', days:0, restaurantIdx:-1, lodgeIdx:-1,
+    transport:'', agencyIdx:-1, distance:0, cityData:null, agencies:[],
+    agencyFilter:'all', agencySort:'none', selectedPlaces:[] };
+  setStep(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Panel switcher helper ─────────────────────────────────────────────────────
+function switchPanel(from, to) {
+  document.getElementById(from).classList.remove('active');
+  document.getElementById(to).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Sign-In ───────────────────────────────────────────────────────────────────
+function doSignIn() {
+  const user = document.getElementById('si-user').value.trim();
+  const pass = document.getElementById('si-pass').value;
+  const err  = document.getElementById('si-err');
+  if (!user)        { err.textContent = '⚠ Please enter a username.'; return; }
+  if (user.length < 4) { err.textContent = '⚠ Username must be at least 4 characters.'; return; }
+  if (!pass)        { err.textContent = '⚠ Please enter a password.'; return; }
+  if (pass.length < 4) { err.textContent = '⚠ Password must be at least 4 characters.'; return; }
+  err.textContent = '';
+  // Animate sign-in page out, reveal main app
+  document.getElementById('signin-page').classList.add('hide');
+  setTimeout(() => { document.getElementById('signin-page').style.display = 'none'; }, 750);
+}
+</script>
+</body>
+</html>
